@@ -1,72 +1,92 @@
-# :package_description
+# Filament Error Mailer 🚨
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-styling.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+styling"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-
-<!--delete-->
----
-This repo can be used to scaffold a Filament plugin. Follow these steps to get started:
-
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Make something great!
----
-<!--/delete-->
-
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+Filament plugin for instant e-mail alerts on web errors, simplifying monitoring and application stability.
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require :vendor_slug/:package_slug
+composer require hugomyb/filament-error-mailer
 ```
 
-You can publish and run the migrations with:
+Then, publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
-php artisan migrate
+php artisan vendor:publish --tag="error-mailer-config"
 ```
 
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-config"
-```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag=":package_slug-views"
-```
+This will create a `config/error-mailer.php` file in your Laravel project.
 
 This is the contents of the published config file:
 
 ```php
 return [
+    'email' => [
+        'recipient' => 'recipient@example.com',
+        'subject' => 'An error was occured - ' . env('APP_NAME'),
+    ],
+
+    'disabledOn' => [
+        //
+    ],
+
+    'cacheCooldown' => 10, // in minutes
 ];
 ```
 
-## Usage
-
-```php
-$variable = new VendorName\Skeleton();
-echo $variable->echoPhrase('Hello, VendorName!');
-```
-
-## Testing
+Optionally, you can publish the mail views using:
 
 ```bash
-composer test
+php artisan vendor:publish --tag="error-mailer-views"
 ```
 
-## Changelog
+## Configuration
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+After publishing the configuration file, you can modify it to suit your needs. Open `config/error-mailer.php` and
+customize the following options:
+
+`'recipient'`: Set the email address where error notifications will be sent.
+
+`'subject'`: Define the subject line for error notification emails. You can use placeholders like `env('APP_NAME')` to
+dynamically include your application's name.
+
+`'cacheCooldown'`: Set the cooling-off period (in minutes) for error notifications. If the same error occurs several times within this period
+
+`'disabledOn'`: You can specify a list of environments (based on `APP_ENV`) where the Error Mailer will be disabled.
+For example, if you want to disable the mailer in the local environment, add 'local' to the array:
+
+```php
+'disabledOn' => [
+    'local',
+],
+```
+
+<hr/>
+
+> ⚠️ **IMPORTANT ! Make sure to configure a mail server in your `.env` file :**
+
+```sh
+MAIL_MAILER=smtp
+MAIL_HOST=your-smtp-host.com
+MAIL_PORT=587
+MAIL_USERNAME=your-smtp-username
+MAIL_PASSWORD=your-smtp-password
+MAIL_ENCRYPTION=tls
+```
+
+If the mail server is not configured in the `.env` file, email notifications will not be sent.
+
+<hr>
+
+Finally, don't forget to register the plugin in your `AdminPanelProvider`:
+
+```php
+...
+->plugins([
+    FilamentErrorMailerPlugin::make()
+])
+``` 
 
 ## Contributing
 
@@ -78,7 +98,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
+- [Mayonobe Hugo](https://github.com/hugomyb)
 - [All Contributors](../../contributors)
 
 ## License
