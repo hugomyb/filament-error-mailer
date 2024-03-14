@@ -35,7 +35,7 @@ return [
 ];
 ```
 
-Optionally, you can publish the mail views using:
+Optionally, you can publish the mail view using:
 
 ```bash
 php artisan vendor:publish --tag="error-mailer-views"
