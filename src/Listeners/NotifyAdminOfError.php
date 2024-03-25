@@ -31,9 +31,17 @@ class NotifyAdminOfError
 
         if (!in_array(env('APP_ENV'), config('error-mailer.disabledOn'))) {
 
-            $recipient = config()->has('error-mailer.email.recipient')
+            $recipients = config()->has('error-mailer.email.recipient')
                 ? config('error-mailer.email.recipient')
-                : 'destinataire@example.com';
+                : ['destinataire@example.com'];
+
+            $bccRecipients = config()->has('error-mailer.email.bcc')
+                ? config('error-mailer.email.bcc')
+                : [];
+
+            $ccRecipients = config()->has('error-mailer.email.cc')
+                ? config('error-mailer.email.cc')
+                : [];
 
             if (isset($event->context['exception'])) {
                 $errorHash = md5($event->context['exception']->getMessage() . $event->context['exception']->getFile());
@@ -42,7 +50,17 @@ class NotifyAdminOfError
                 $coolDownPeriod = config('error-mailer.cacheCooldown') ?? 10;
 
                 if (!Cache::has($cacheKey)) {
-                    Mail::to($recipient)->send(new ErrorOccurred($event->context['exception']));
+                    $mail = Mail::to($recipients);
+
+                    foreach ($bccRecipients as $bcc) {
+                        $mail->bcc($bcc);
+                    }
+
+                    foreach ($ccRecipients as $cc) {
+                        $mail->cc($cc);
+                    }
+
+                    $mail->send(new ErrorOccurred($event->context['exception']));
                     Cache::put($cacheKey, true, now()->addMinutes($coolDownPeriod));
                 }
             }
