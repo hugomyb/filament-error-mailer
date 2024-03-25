@@ -87,6 +87,9 @@ Finally, don't forget to register the plugin in your `AdminPanelProvider`:
     FilamentErrorMailerPlugin::make()
 ])
 ``` 
+## More
+
+This plugin is also available for a classic Laravel project without FilamentPHP : **[LaravelErrorMailer](https://github.com/hugomayo7/LaravelErrorMailer)**
 
 ## Contributing
 
