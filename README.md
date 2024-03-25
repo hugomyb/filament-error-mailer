@@ -23,7 +23,9 @@ This is the contents of the published config file:
 ```php
 return [
     'email' => [
-        'recipient' => 'recipient@example.com',
+        'recipient' => ['recipient1@example.com'],
+        'bcc' => [],
+        'cc' => [],
         'subject' => 'An error was occured - ' . env('APP_NAME'),
     ],
 
@@ -46,18 +48,22 @@ php artisan vendor:publish --tag="error-mailer-views"
 After publishing the configuration file, you can modify it to suit your needs. Open `config/error-mailer.php` and
 customize the following options:
 
-`'recipient'`: Set the email address where error notifications will be sent.
+- `'recipient'`: Set email addresses where error notifications will be sent.
 
-`'subject'`: Define the subject line for error notification emails. You can use placeholders like `env('APP_NAME')` to
+- `'bcc'`: Set email addresses where error notifications will be sent in BCC.
+
+- `'cc'`: Set email addresses where error notifications will be sent in CC.
+
+- `'subject'`: Define the subject line for error notification emails. You can use placeholders like `env('APP_NAME')` to
 dynamically include your application's name.
 
-`'cacheCooldown'`: Set the cooling-off period (in minutes) for error notifications. If the same error occurs several times within this period
+- `'cacheCooldown'`: Set the cooling-off period (in minutes) for error notifications. If the same error occurs several times within this period
 
-`'disabledOn'`: You can specify a list of environments (based on `APP_ENV`) where the Error Mailer will be disabled.
+- `'disabledOn'`: You can specify a list of environments (based on `APP_ENV`) where the Error Mailer will be disabled.
 For example, if you want to disable the mailer in the local environment, add 'local' to the array:
 
 ```php
-'disabledOn' => [
+- 'disabledOn' => [
     'local',
 ],
 ```
