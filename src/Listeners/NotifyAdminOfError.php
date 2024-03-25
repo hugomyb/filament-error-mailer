@@ -28,18 +28,19 @@ class NotifyAdminOfError
     public function handle($event)
     {
         $coolDownPeriod = 0;
+
         if (!in_array(env('APP_ENV'), config('error-mailer.disabledOn'))) {
 
             $recipients = config()->has('error-mailer.email.recipient')
-                ? config('error-mailer.email.recipient')
+                ? (is_array(config('error-mailer.email.recipient')) ? config('error-mailer.email.recipient') : [config('error-mailer.email.recipient')])
                 : ['destinataire@example.com'];
 
             $bccRecipients = config()->has('error-mailer.email.bcc')
-                ? config('error-mailer.email.bcc')
+                ? (is_array(config('error-mailer.email.bcc')) ? config('error-mailer.email.bcc') : [config('error-mailer.email.bcc')])
                 : [];
 
             $ccRecipients = config()->has('error-mailer.email.cc')
-                ? config('error-mailer.email.cc')
+                ? (is_array(config('error-mailer.email.cc')) ? config('error-mailer.email.cc') : [config('error-mailer.email.cc')])
                 : [];
 
             if (isset($event->context['exception'])) {
