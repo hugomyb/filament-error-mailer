@@ -28,7 +28,6 @@ class NotifyAdminOfError
     public function handle($event)
     {
         $coolDownPeriod = 0;
-
         if (!in_array(env('APP_ENV'), config('error-mailer.disabledOn'))) {
 
             $recipients = config()->has('error-mailer.email.recipient')
@@ -51,13 +50,12 @@ class NotifyAdminOfError
 
                 if (!Cache::has($cacheKey)) {
                     $mail = Mail::to($recipients);
-
-                    foreach ($bccRecipients as $bcc) {
-                        $mail->bcc($bcc);
+                    if($bccRecipients){
+                        $mail->bcc($bccRecipients);
                     }
 
-                    foreach ($ccRecipients as $cc) {
-                        $mail->cc($cc);
+                    if($ccRecipients){
+                        $mail->cc($ccRecipients);
                     }
 
                     $mail->send(new ErrorOccurred($event->context['exception']));
