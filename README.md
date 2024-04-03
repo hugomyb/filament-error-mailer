@@ -63,7 +63,7 @@ dynamically include your application's name.
 For example, if you want to disable the mailer in the local environment, add 'local' to the array:
 
 ```php
-- 'disabledOn' => [
+'disabledOn' => [
     'local',
 ],
 ```
