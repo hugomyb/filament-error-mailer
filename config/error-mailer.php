@@ -5,7 +5,7 @@ return [
         'recipient' => ['recipient1@example.com'],
         'bcc' => [],
         'cc' => [],
-        'subject' => 'An error was occured - ' . env('APP_NAME'),
+        'subject' => 'An error has occured - ' . env('APP_NAME'),
     ],
 
     'disabledOn' => [
