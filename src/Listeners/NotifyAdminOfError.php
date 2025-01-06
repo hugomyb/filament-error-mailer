@@ -4,8 +4,10 @@ namespace Hugomyb\FilamentErrorMailer\Listeners;
 
 
 use Hugomyb\FilamentErrorMailer\Notifications\ErrorOccurred;
+use Hugomyb\FilamentErrorMailer\Services\WebhookNotifier;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class NotifyAdminOfError
@@ -30,36 +32,89 @@ class NotifyAdminOfError
         $coolDownPeriod = 0;
 
         if (!in_array(env('APP_ENV'), config('error-mailer.disabledOn'))) {
+            $recipients = config('error-mailer.email.recipient', ['destinataire@example.com']);
+            $bccRecipients = config('error-mailer.email.bcc', []);
+            $ccRecipients = config('error-mailer.email.cc', []);
 
-            $recipients = config()->has('error-mailer.email.recipient')
-                ? (is_array(config('error-mailer.email.recipient')) ? config('error-mailer.email.recipient') : [config('error-mailer.email.recipient')])
-                : ['destinataire@example.com'];
-
-            $bccRecipients = config()->has('error-mailer.email.bcc')
-                ? (is_array(config('error-mailer.email.bcc')) ? config('error-mailer.email.bcc') : [config('error-mailer.email.bcc')])
-                : [];
-
-            $ccRecipients = config()->has('error-mailer.email.cc')
-                ? (is_array(config('error-mailer.email.cc')) ? config('error-mailer.email.cc') : [config('error-mailer.email.cc')])
-                : [];
-
-            if (isset($event->context['exception'])) {
+            if (isset($event->context['exception']) && $event->context['exception'] instanceof \Throwable) {
                 $errorHash = md5($event->context['exception']->getMessage() . $event->context['exception']->getFile());
-
                 $cacheKey = 'error_mailer_' . $errorHash;
                 $coolDownPeriod = config('error-mailer.cacheCooldown') ?? 10;
 
                 if (!Cache::has($cacheKey)) {
+                    $errorDetails = [
+                        'id' => $errorHash,
+                        'message' => $event->context['exception']->getMessage(),
+                        'file' => $event->context['exception']->getFile(),
+                        'line' => $event->context['exception']->getLine(),
+                        'url' => url(request()->getPathInfo()),
+                        'method' => request()->method(),
+                        'ip' => request()->ip(),
+                        'userAgent' => request()->userAgent(),
+                        'referrer' => request()->header('referer') ?? 'N/A',
+                        'requestTime' => \Carbon\Carbon::createFromTimestamp(request()->server('REQUEST_TIME'))->toDateTimeString(),
+                        'requestUri' => request()->server('REQUEST_URI') ?? 'N/A',
+                        'authUser' => auth()->check() ? [
+                            'id' => auth()->id(),
+                            'name' => auth()->user()->name ?? "",
+                            'email' => auth()->user()->email ?? "",
+                        ] : null,
+                        'stackTrace' => $event->context['exception']->getTraceAsString(),
+                    ];
+
+                    Cache::put("error_details_{$errorHash}", $errorDetails, now()->addMinutes(60));
+
                     $mail = Mail::to($recipients);
-                    if($bccRecipients){
+                    if ($bccRecipients) {
                         $mail->bcc($bccRecipients);
                     }
-
-                    if($ccRecipients){
+                    if ($ccRecipients) {
                         $mail->cc($ccRecipients);
                     }
+                    $mail->send(new ErrorOccurred($event->context['exception'], $errorHash));
 
-                    $mail->send(new ErrorOccurred($event->context['exception']));
+                    $webhookUrl = config('error-mailer.webhooks.discord');
+                    if ($webhookUrl) {
+                        $payload = [
+                            'embeds' => [
+                                [
+                                    'title' => config('error-mailer.webhooks.message.title') ?? 'Error Alert - ' . config('app.name'),
+                                    'description' => config('error-mailer.webhooks.message.description') ?? 'An error has occurred in the application.',
+                                    'color' => 16711680,
+                                    'fields' => [
+                                        [
+                                            'name' => config('error-mailer.webhooks.message.error') ?? 'Error',
+                                            'value' => $event->context['exception']->getMessage(),
+                                            'inline' => false,
+                                        ],
+                                        [
+                                            'name' => config('error-mailer.webhooks.message.file') ?? 'File',
+                                            'value' => $event->context['exception']->getFile(),
+                                            'inline' => false,
+                                        ],
+                                        [
+                                            'name' => config('error-mailer.webhooks.message.line') ?? 'Line',
+                                            'value' => $event->context['exception']->getLine(),
+                                            'inline' => false,
+                                        ],
+                                        [
+                                            'name' => '',
+                                            'value' => "[" . (config('error-mailer.webhooks.message.details_link') ?? 'See more details') . "](" . route('error.details', ['errorId' => $errorHash]) . ")",                                            'inline' => false,
+                                        ],
+                                    ],
+                                    'footer' => [
+                                        'text' => config('app.name') . ' - ' . config('app.url'),
+                                    ],
+                                    'timestamp' => now()->toIso8601String(),
+                                ],
+                            ],
+                        ];
+
+                        WebhookNotifier::send($webhookUrl, $payload);
+                    } else {
+                        Log::warning('Discord webhook is not configured or is null. Skipping webhook notification.');
+                    }
+
                     Cache::put($cacheKey, true, now()->addMinutes($coolDownPeriod));
                 }
             }

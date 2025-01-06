@@ -2,6 +2,42 @@
 
 Filament plugin for instant e-mail alerts on web errors, simplifying monitoring and application stability.
 
+## Features
+
+### Instant Error Notifications
+
+Sends error details instantly via email with all relevant context, including:
+
+- Error message, file, and line number.
+- Request details: method, IP, user agent, referrer, request time, and URI.
+- Authenticated user details (if available).
+
+### Discord Webhook Integration
+
+In addition to email notifications, you can configure a Discord webhook to send error alerts directly to a Discord channel.
+The webhook includes:
+- Error message, file, and line number.
+- A clickable link to view detailed error information in your application.
+
+To enable this, set the `ERROR_MAILER_DISCORD_WEBHOOK` environment variable in your `.env` file with your Discord webhook URL.
+```
+ERROR_MAILER_DISCORD_WEBHOOK="https://discord.com/api/webhooks/your-webhook-id/your-webhook-token"
+```
+
+### Error Details Page
+
+Each error notification includes a unique link to a dedicated error details page in your application.  
+The page displays:
+- Full error context (file, line, message).
+- Request details (method, IP, user agent, referrer, time, URI).
+- Full stack trace for debugging.
+- Authenticated user information (if available).
+
+### Error Notification Cooldown
+
+- Avoids spamming your inbox or webhook by setting a cooldown period (cacheCooldown) in minutes.
+- During this period, duplicate errors will not trigger new notifications.
+
 ## Installation
 
 You can install the package via composer:
@@ -26,7 +62,7 @@ return [
         'recipient' => ['recipient1@example.com'],
         'bcc' => [],
         'cc' => [],
-        'subject' => 'An error was occured - ' . env('APP_NAME'),
+        'subject' => 'An error has occurred - ' . env('APP_NAME'),
     ],
 
     'disabledOn' => [
@@ -34,10 +70,23 @@ return [
     ],
 
     'cacheCooldown' => 10, // in minutes
+
+    'webhooks' => [
+        'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
+
+        'message' => [
+            'title' => 'Error Alert - ' . env('APP_NAME'),
+            'description' => 'An error has occured in the application.',
+            'error' => 'Error',
+            'file' => 'File',
+            'line' => 'Line',
+            'details_link' => 'See more details'
+        ],
+    ],
 ];
 ```
 
-Optionally, you can publish the mail view using:
+Optionally, you can publish views using:
 
 ```bash
 php artisan vendor:publish --tag="error-mailer-views"
@@ -68,6 +117,8 @@ For example, if you want to disable the mailer in the local environment, add 'lo
 ],
 ```
 
+- `'webhooks'`: Add a Discord webhook URL and customize the webhook message fields.
+
 <hr/>
 
 > ⚠️ **IMPORTANT ! Make sure to configure a mail server in your `.env` file :**
@@ -92,7 +143,8 @@ Finally, don't forget to register the plugin in your `AdminPanelProvider`:
 ->plugins([
     FilamentErrorMailerPlugin::make()
 ])
-``` 
+```
+
 ## More
 
 This plugin is also available for a classic Laravel project without FilamentPHP : **[LaravelErrorMailer](https://github.com/hugomayo7/LaravelErrorMailer)**

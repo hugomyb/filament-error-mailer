@@ -41,10 +41,18 @@
 @endcomponent
 @endif
 
+@component('mail::button', ['url' => route('error.details', ['errorId' => $errorHash])])
+See Error Details
+@endcomponent
+
+<p style="text-align: center; font-size: 14px; color: #555;">Copy the URL manually: <br>
+<a href="{{ route('error.details', ['errorId' => $errorHash]) }}" style="color: #1d72b8; text-decoration: underline;">{{ route('error.details', ['errorId' => $errorHash]) }}</a></p>
+
 ## Trace :
 @component('mail::panel')
 {{ $exception || $stackTrace ? $stackTrace : "" }}
 @endcomponent
+
 </x-mail::message>
 
 <style>
