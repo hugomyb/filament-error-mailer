@@ -12,10 +12,12 @@ class ErrorOccurred extends Mailable
     use Queueable, SerializesModels;
 
     public $exception;
+    public $errorHash;
 
-    public function __construct($exception)
+    public function __construct($exception, $errorHash)
     {
         $this->exception = $exception;
+        $this->errorHash = $errorHash;
     }
 
     public function build()
@@ -24,7 +26,11 @@ class ErrorOccurred extends Mailable
 
         return $this->subject(config('error-mailer.email.subject'))
             ->markdown('error-mailer::error')
-            ->with(['exception' => $this->exception, 'stackTrace' => $stackTrace]);
+            ->with([
+                'exception' => $this->exception,
+                'stackTrace' => $stackTrace,
+                'errorHash' => $this->errorHash,
+            ]);
     }
 
     function formatStackTrace($exception) {
