@@ -38,6 +38,23 @@ The page displays:
 - Avoids spamming your inbox or webhook by setting a cooldown period (cacheCooldown) in minutes.
 - During this period, duplicate errors will not trigger new notifications.
 
+### Scheduled Cleanup (Optional)
+
+To prevent excessive storage, you can schedule a cleanup task to remove old errors.  
+Example:
+```php
+$schedule->call(function () {
+    $storagePath = config('error-mailer.storage_path');
+    $files = File::files($storagePath);
+
+    foreach ($files as $file) {
+        if ($file->getMTime() < now()->subMonths(3)->timestamp) {
+            File::delete($file->getRealPath());
+        }
+    }
+})->daily();
+```
+
 ## Installation
 
 You can install the package via composer:
@@ -83,6 +100,8 @@ return [
             'details_link' => 'See more details'
         ],
     ],
+    
+    'storage_path' => storage_path('app/errors'),
 ];
 ```
 
@@ -118,6 +137,7 @@ For example, if you want to disable the mailer in the local environment, add 'lo
 ```
 
 - `'webhooks'`: Add a Discord webhook URL and customize the webhook message fields.
+- `'storage_path'`: Define the directory where JSON error files will be stored. Defaults to `storage/app/errors`.
 
 <hr/>
 
