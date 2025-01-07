@@ -29,8 +29,6 @@ class NotifyAdminOfError
      */
     public function handle($event)
     {
-        $coolDownPeriod = 0;
-
         if (!in_array(env('APP_ENV'), config('error-mailer.disabledOn'))) {
             $recipients = config('error-mailer.email.recipient', ['destinataire@example.com']);
             $bccRecipients = config('error-mailer.email.bcc', []);
@@ -38,10 +36,11 @@ class NotifyAdminOfError
 
             if (isset($event->context['exception']) && $event->context['exception'] instanceof \Throwable) {
                 $errorHash = md5($event->context['exception']->getMessage() . $event->context['exception']->getFile());
-                $cacheKey = 'error_mailer_' . $errorHash;
-                $coolDownPeriod = config('error-mailer.cacheCooldown') ?? 10;
+                $storagePath = config('error-mailer.storage_path');
 
-                if (!Cache::has($cacheKey)) {
+                $errorFile = "{$storagePath}/{$errorHash}.json";
+
+                if (!file_exists($errorFile)) {
                     $errorDetails = [
                         'id' => $errorHash,
                         'message' => $event->context['exception']->getMessage(),
@@ -62,7 +61,11 @@ class NotifyAdminOfError
                         'stackTrace' => $event->context['exception']->getTraceAsString(),
                     ];
 
-                    Cache::put("error_details_{$errorHash}", $errorDetails, now()->addMinutes(60));
+                    if (!file_exists($storagePath)) {
+                        mkdir($storagePath, 0755, true);
+                    }
+
+                    file_put_contents($errorFile, json_encode($errorDetails, JSON_PRETTY_PRINT));
 
                     $mail = Mail::to($recipients);
                     if ($bccRecipients) {
@@ -99,7 +102,8 @@ class NotifyAdminOfError
                                         ],
                                         [
                                             'name' => '',
-                                            'value' => "[" . (config('error-mailer.webhooks.message.details_link') ?? 'See more details') . "](" . route('error.details', ['errorId' => $errorHash]) . ")",                                            'inline' => false,
+                                            'value' => "[" . (config('error-mailer.webhooks.message.details_link') ?? 'See more details') . "](" . route('error.details', ['errorId' => $errorHash]) . ")",
+                                            'inline' => false,
                                         ],
                                     ],
                                     'footer' => [
@@ -114,10 +118,9 @@ class NotifyAdminOfError
                     } else {
                         Log::warning('Discord webhook is not configured or is null. Skipping webhook notification.');
                     }
-
-                    Cache::put($cacheKey, true, now()->addMinutes($coolDownPeriod));
                 }
             }
         }
     }
+
 }

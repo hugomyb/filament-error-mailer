@@ -18,6 +18,13 @@ class FilamentErrorMailerServiceProvider extends PackageServiceProvider
 
     public static string $viewNamespace = 'error-mailer';
 
+    public function boot()
+    {
+        $this->loadRoutesFrom(__DIR__ . '/../routes/error-mailer.php');
+
+        return parent::boot();
+    }
+
     public function configurePackage(Package $package): void
     {
         /*
@@ -107,7 +114,7 @@ class FilamentErrorMailerServiceProvider extends PackageServiceProvider
     protected function getRoutes(): array
     {
         return [
-            'web',
+            'error-mailer',
         ];
     }
 

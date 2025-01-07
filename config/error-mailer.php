@@ -26,4 +26,6 @@ return [
             'details_link' => 'See more details'
         ],
     ],
+
+    'storage_path' => storage_path('app/errors'),
 ];

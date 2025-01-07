@@ -6,14 +6,17 @@ use Illuminate\Support\Facades\Cache;
 
 class ErrorDetailsController
 {
-    public function show($errorId)
+    public function show($errorHash)
     {
-        $errorDetails = Cache::get("error_details_{$errorId}");
+        $storagePath = config('error-mailer.storage_path');
+        $errorFile = "{$storagePath}/{$errorHash}.json";
 
-        if (!$errorDetails) {
-            abort(404, 'Erreur non trouvée');
+        if (!file_exists($errorFile)) {
+            abort(404, 'Error not found');
         }
 
-        return view('error-mailer::details', ['error' => $errorDetails]);
+        $error = json_decode(file_get_contents($errorFile), true);
+
+        return view('error-mailer::details', ['error' => $error]);
     }
 }
