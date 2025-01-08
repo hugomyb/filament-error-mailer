@@ -99,17 +99,17 @@ class NotifyAdminOfError
                                 'fields' => [
                                     [
                                         'name' => config('error-mailer.webhooks.message.error') ?? 'Error',
-                                        'value' => $event->context['exception']->getMessage(),
+                                        'value' => $event->context['exception']->getMessage() ?? 'N/A',
                                         'inline' => false,
                                     ],
                                     [
                                         'name' => config('error-mailer.webhooks.message.file') ?? 'File',
-                                        'value' => $event->context['exception']->getFile(),
+                                        'value' => $event->context['exception']->getFile() ?? 'N/A',
                                         'inline' => false,
                                     ],
                                     [
                                         'name' => config('error-mailer.webhooks.message.line') ?? 'Line',
-                                        'value' => $event->context['exception']->getLine(),
+                                        'value' => $event->context['exception']->getLine() ?? 'N/A',
                                         'inline' => false,
                                     ],
                                     [
