@@ -47,7 +47,7 @@ class NotifyAdminOfError
                     $existingError = json_decode(file_get_contents($errorFile), true);
                     $lastNotificationTime = $existingError['last_notified_at'] ?? null;
 
-                    if ($lastNotificationTime && now()->diffInMinutes($lastNotificationTime) < $cacheCooldown) {
+                    if ($lastNotificationTime && now()->diffInMinutes($lastNotificationTime, true) < $cacheCooldown) {
                         return;
                     }
                 }
