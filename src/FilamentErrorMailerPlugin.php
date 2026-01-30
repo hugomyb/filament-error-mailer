@@ -14,6 +14,7 @@ class FilamentErrorMailerPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
+        //
     }
 
     public function boot(Panel $panel): void

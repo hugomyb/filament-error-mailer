@@ -5,7 +5,7 @@ return [
         'recipient' => ['recipient1@example.com'],
         'bcc' => [],
         'cc' => [],
-        'subject' => 'An error has occured - ' . env('APP_NAME'),
+        'subject' => 'An error has occurred - ' . config('app.name'),
     ],
 
     'disabledOn' => [
@@ -18,8 +18,8 @@ return [
         'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
 
         'message' => [
-            'title' => 'Error Alert - ' . env('APP_NAME'),
-            'description' => 'An error has occured in the application.',
+            'title' => 'Error Alert - ' . config('app.name'),
+            'description' => 'An error has occurred in the application.',
             'error' => 'Error',
             'file' => 'File',
             'line' => 'Line',
@@ -28,4 +28,25 @@ return [
     ],
 
     'storage_path' => storage_path('app/errors'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Error Filtering
+    |--------------------------------------------------------------------------
+    |
+    | Configure which errors should be ignored.
+    |
+    */
+    'ignore' => [
+        'levels' => [
+            // 'debug',
+            // 'info',
+            // 'notice',
+            // 'warning',
+        ],
+        'exceptions' => [
+            // \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+            // \Illuminate\Validation\ValidationException::class,
+        ],
+    ],
 ];

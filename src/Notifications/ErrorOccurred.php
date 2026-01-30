@@ -11,10 +11,10 @@ class ErrorOccurred extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $exception;
-    public $errorHash;
+    public \Throwable $exception;
+    public string $errorHash;
 
-    public function __construct($exception, $errorHash)
+    public function __construct(\Throwable $exception, string $errorHash)
     {
         $this->exception = $exception;
         $this->errorHash = $errorHash;
@@ -33,19 +33,20 @@ class ErrorOccurred extends Mailable
             ]);
     }
 
-    function formatStackTrace($exception) {
+    private function formatStackTrace(\Throwable $exception): string
+    {
         $trace = $exception->getTraceAsString();
         $traceLines = explode("\n", $trace);
         $formattedTrace = [];
 
         foreach ($traceLines as $line) {
-            // Extraction des informations clés de chaque ligne
+            // Extract key information from each line
             if (preg_match('/^#(\d+) (.*?):(.*)$/', $line, $matches)) {
                 $number = $matches[1];
                 $path = trim($matches[2]);
                 $detail = trim($matches[3]);
 
-                // Formatage de chaque entrée de la stack trace
+                // Format each stack trace entry
                 $formattedLine = "### $number $path\n$detail\n";
                 $formattedTrace[] = $formattedLine;
             }

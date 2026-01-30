@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 class WebhookNotifier
 {
-    public static function send(string $url, array $payload)
+    public static function send(string $url, array $payload): bool
     {
         if (!$url) {
             return false;

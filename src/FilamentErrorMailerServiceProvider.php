@@ -65,6 +65,12 @@ class FilamentErrorMailerServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        // Register event listener
+        $this->app['events']->listen(
+            MessageLogged::class,
+            NotifyAdminOfError::class
+        );
+
         // Handle Stubs
         if (app()->runningInConsole()) {
             foreach (app(Filesystem::class)->files(__DIR__ . '/../stubs/') as $file) {

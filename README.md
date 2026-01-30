@@ -1,77 +1,58 @@
 # Filament Error Mailer 🚨
 
-Filament plugin for instant e-mail alerts on web errors, simplifying monitoring and application stability.
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/hugomyb/filament-error-mailer.svg?style=flat-square)](https://packagist.org/packages/hugomyb/filament-error-mailer)
+[![Total Downloads](https://img.shields.io/packagist/dt/hugomyb/filament-error-mailer.svg?style=flat-square)](https://packagist.org/packages/hugomyb/filament-error-mailer)
 
-## Features
+A powerful Filament plugin that provides instant error notifications via email and Discord webhooks, with a beautiful error details page for debugging. Never miss a critical error in your application again!
 
-### Instant Error Notifications
+## ✨ Key Features
 
-Sends error details instantly via email with all relevant context, including:
+- 📧 **Instant Email Notifications** - Get notified immediately when errors occur
+- 💬 **Discord Webhook Integration** - Send alerts to your Discord channels
+- 🎯 **Smart Application File Detection** - Automatically identifies errors in your code (excluding vendor files)
+- 🌓 **Beautiful Error Details Page** - Dark/Light mode with copy & share functionality
+- ⏱️ **Cooldown System** - Prevents notification spam for duplicate errors
+- 🎛️ **Advanced Filtering** - Filter by log level, exception type, or environment
+- 🔒 **Secure Access** - Protected by Filament authentication
+- 📦 **JSON Storage** - All errors stored as JSON files for easy access
 
-- Error message, file, and line number.
-- Request details: method, IP, user agent, referrer, request time, and URI.
-- Authenticated user details (if available).
+## 📋 Table of Contents
 
-### Discord Webhook Integration
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [Email Configuration](#email-configuration)
+  - [Discord Webhook](#discord-webhook)
+  - [Error Filtering](#error-filtering)
+  - [Cooldown Period](#cooldown-period)
+  - [Storage Path](#storage-path)
+- [Features in Detail](#features-in-detail)
+  - [Smart Application File Detection](#smart-application-file-detection)
+  - [Error Details Page](#error-details-page)
+  - [Notification Cooldown](#notification-cooldown)
+- [Usage](#usage)
+  - [Accessing Error Details](#accessing-error-details)
+  - [Scheduled Cleanup](#scheduled-cleanup)
+- [Advanced Configuration](#advanced-configuration)
+- [Contributing](#contributing)
+- [License](#license)
 
-In addition to email notifications, you can configure a Discord webhook to send error alerts directly to a Discord channel.
-The webhook includes:
-- Error message, file, and line number.
-- A clickable link to view detailed error information in your application.
+## 📦 Installation
 
-To enable this, set the `ERROR_MAILER_DISCORD_WEBHOOK` environment variable in your `.env` file with your Discord webhook URL.
-```
-ERROR_MAILER_DISCORD_WEBHOOK="https://discord.com/api/webhooks/your-webhook-id/your-webhook-token"
-```
-
-### Error Details Page
-
-Each error notification includes a unique link to a dedicated error details page in your application.  
-The page displays:
-- Full error context (file, line, message).
-- Request details (method, IP, user agent, referrer, time, URI).
-- Full stack trace for debugging.
-- Authenticated user information (if available).
-
-### Error Notification Cooldown
-
-- Avoids spamming your inbox or webhook by setting a cooldown period (cacheCooldown) in minutes.
-- During this period, duplicate errors will not trigger new notifications.
-
-### Scheduled Cleanup (Optional)
-
-To prevent excessive storage, you can schedule a cleanup task to remove old errors.  
-Example:
-```php
-$schedule->call(function () {
-    $storagePath = config('error-mailer.storage_path');
-    $files = File::files($storagePath);
-
-    foreach ($files as $file) {
-        if ($file->getMTime() < now()->subMonths(3)->timestamp) {
-            File::delete($file->getRealPath());
-        }
-    }
-})->daily();
-```
-
-## Installation
-
-You can install the package via composer:
+### Step 1: Install via Composer
 
 ```bash
 composer require hugomyb/filament-error-mailer
 ```
 
-Then, publish the config file with:
+### Step 2: Publish Configuration
+
+Publish the configuration file:
 
 ```bash
 php artisan vendor:publish --tag="error-mailer-config"
 ```
 
-This will create a `config/error-mailer.php` file in your Laravel project.
-
-This is the contents of the published config file:
+This creates `config/error-mailer.php` with the following default configuration:
 
 ```php
 return [
@@ -79,7 +60,7 @@ return [
         'recipient' => ['recipient1@example.com'],
         'bcc' => [],
         'cc' => [],
-        'subject' => 'An error has occurred - ' . env('APP_NAME'),
+        'subject' => 'An error has occurred - ' . config('app.name'),
     ],
 
     'disabledOn' => [
@@ -92,96 +73,426 @@ return [
         'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
 
         'message' => [
-            'title' => 'Error Alert - ' . env('APP_NAME'),
-            'description' => 'An error has occured in the application.',
+            'title' => 'Error Alert - ' . config('app.name'),
+            'description' => 'An error has occurred in the application.',
             'error' => 'Error',
             'file' => 'File',
             'line' => 'Line',
             'details_link' => 'See more details'
         ],
     ],
-    
+
     'storage_path' => storage_path('app/errors'),
+
+    'ignore' => [
+        'levels' => [
+            // 'debug',
+            // 'info',
+        ],
+        'exceptions' => [
+            // \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+        ],
+    ],
 ];
 ```
 
-Optionally, you can publish views using:
+### Step 3: Configure Mail Server
 
-```bash
-php artisan vendor:publish --tag="error-mailer-views"
-```
+> ⚠️ **IMPORTANT**: Configure your mail server in `.env` to receive email notifications:
 
-## Configuration
-
-After publishing the configuration file, you can modify it to suit your needs. Open `config/error-mailer.php` and
-customize the following options:
-
-- `'recipient'`: Set email addresses where error notifications will be sent.
-
-- `'bcc'`: Set email addresses where error notifications will be sent in BCC.
-
-- `'cc'`: Set email addresses where error notifications will be sent in CC.
-
-- `'subject'`: Define the subject line for error notification emails. You can use placeholders like `env('APP_NAME')` to
-dynamically include your application's name.
-
-- `'cacheCooldown'`: Set the cooling-off period (in minutes) for error notifications. If the same error occurs several times within this period
-
-- `'disabledOn'`: You can specify a list of environments (based on `APP_ENV`) where the Error Mailer will be disabled.
-For example, if you want to disable the mailer in the local environment, add 'local' to the array:
-
-```php
-'disabledOn' => [
-    'local',
-],
-```
-
-- `'webhooks'`: Add a Discord webhook URL and customize the webhook message fields.
-- `'storage_path'`: Define the directory where JSON error files will be stored. Defaults to `storage/app/errors`.
-
-<hr/>
-
-> ⚠️ **IMPORTANT ! Make sure to configure a mail server in your `.env` file :**
-
-```sh
+```env
 MAIL_MAILER=smtp
 MAIL_HOST=your-smtp-host.com
 MAIL_PORT=587
 MAIL_USERNAME=your-smtp-username
 MAIL_PASSWORD=your-smtp-password
 MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=noreply@yourapp.com
+MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-If the mail server is not configured in the `.env` file, email notifications will not be sent.
+### Step 4: Register the Plugin
 
-<hr>
-
-Finally, don't forget to register the plugin in your `AdminPanelProvider`:
+Add the plugin to your Filament panel provider (e.g., `app/Providers/Filament/AdminPanelProvider.php`):
 
 ```php
-...
-->plugins([
-    FilamentErrorMailerPlugin::make()
-])
+use Hugomyb\FilamentErrorMailer\FilamentErrorMailerPlugin;
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        // ... other configuration
+        ->plugins([
+            FilamentErrorMailerPlugin::make(),
+        ]);
+}
 ```
 
-## More
+### Step 5: (Optional) Publish Views
 
-This plugin is also available for a classic Laravel project without FilamentPHP : **[LaravelErrorMailer](https://github.com/hugomayo7/LaravelErrorMailer)**
+If you want to customize the error details page or email template:
 
-## Contributing
+```bash
+php artisan vendor:publish --tag="error-mailer-views"
+```
 
-Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
+---
 
-## Security Vulnerabilities
+## ⚙️ Configuration
 
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+### Email Configuration
 
-## Credits
+Configure email recipients and subject in `config/error-mailer.php`:
 
-- [Mayonobe Hugo](https://github.com/hugomyb)
+```php
+'email' => [
+    'recipient' => ['admin@example.com', 'dev@example.com'],
+    'bcc' => ['monitoring@example.com'],
+    'cc' => [],
+    'subject' => 'Error Alert - ' . config('app.name'),
+],
+```
+
+**Options:**
+- `recipient` (array): Primary email addresses to receive notifications
+- `bcc` (array): Blind carbon copy recipients
+- `cc` (array): Carbon copy recipients
+- `subject` (string): Email subject line (supports dynamic values)
+
+### Discord Webhook
+
+Send error notifications to Discord channels:
+
+**1. Create a Discord Webhook:**
+- Go to your Discord server settings
+- Navigate to Integrations → Webhooks
+- Click "New Webhook"
+- Copy the webhook URL
+
+**2. Add to `.env`:**
+
+```env
+ERROR_MAILER_DISCORD_WEBHOOK="https://discord.com/api/webhooks/your-webhook-id/your-webhook-token"
+```
+
+**3. Customize webhook messages (optional):**
+
+```php
+'webhooks' => [
+    'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
+
+    'message' => [
+        'title' => 'Error Alert - ' . config('app.name'),
+        'description' => 'An error has occurred in the application.',
+        'error' => 'Error',
+        'file' => 'File',
+        'line' => 'Line',
+        'details_link' => 'View Details',
+    ],
+],
+```
+
+### Error Filtering
+
+Control which errors trigger notifications:
+
+```php
+'ignore' => [
+    // Ignore specific log levels
+    'levels' => [
+        'debug',
+        'info',
+        // 'warning',
+        // 'error',
+    ],
+
+    // Ignore specific exception types
+    'exceptions' => [
+        \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+        \Illuminate\Validation\ValidationException::class,
+        \Illuminate\Auth\AuthenticationException::class,
+    ],
+],
+```
+
+**Available log levels:**
+- `debug` - Detailed debug information
+- `info` - Interesting events
+- `notice` - Normal but significant events
+- `warning` - Exceptional occurrences that are not errors
+- `error` - Runtime errors
+- `critical` - Critical conditions
+- `alert` - Action must be taken immediately
+- `emergency` - System is unusable
+
+### Disable in Specific Environments
+
+Prevent notifications in certain environments (e.g., local development):
+
+```php
+'disabledOn' => [
+    'local',
+    'testing',
+],
+```
+
+### Cooldown Period
+
+Prevent notification spam for duplicate errors:
+
+```php
+'cacheCooldown' => 10, // in minutes
+```
+
+If the same error occurs multiple times within this period, only the first occurrence will trigger a notification.
+
+### Storage Path
+
+Customize where error JSON files are stored:
+
+```php
+'storage_path' => storage_path('app/errors'),
+```
+
+---
+
+## 🎯 Features in Detail
+
+### Smart Application File Detection
+
+When an error occurs, the package intelligently identifies the **first line of code from your application** (excluding vendor files) in the stack trace.
+
+**Example:**
+
+Instead of showing:
+```
+File: /vendor/laravel/framework/src/Illuminate/Database/Connection.php
+Line: 742
+```
+
+You'll see:
+```
+Application File: /app/Http/Controllers/UserController.php  ← Your code!
+Application Line: 25                                         ← Your code!
+Origin File: /vendor/laravel/framework/src/Illuminate/Database/Connection.php
+Origin Line: 742
+```
+
+This makes debugging **significantly faster** by immediately showing you where in **your code** the error originated.
+
+### Error Details Page
+
+Each error notification includes a unique link to a beautiful, feature-rich error details page:
+
+**Features:**
+- 🌓 **Dark/Light Mode** - Toggle themes with persistent preference (saved in localStorage)
+- 📋 **Copy as Markdown** - Copy formatted error details for documentation
+- 📄 **Copy as JSON** - Copy raw error data for processing
+- 🔗 **Share** - Use native Web Share API (mobile-friendly)
+- 🔒 **Secure** - Protected by Filament authentication
+- 📱 **Responsive** - Works perfectly on all devices
+
+**Information displayed:**
+- Error message and exception type
+- Application file and line (your code)
+- Origin file and line (where exception was thrown)
+- Full stack trace
+- Request details (method, URL, IP, user agent, referrer)
+- Authenticated user information (if available)
+- Timestamp
+
+**Access:** Only authenticated Filament users can view error details.
+
+### Notification Cooldown
+
+The cooldown system prevents notification spam:
+
+1. When an error occurs, a notification is sent
+2. Error details are stored with a timestamp
+3. If the same error occurs again within the cooldown period, no new notification is sent
+4. After the cooldown expires, the next occurrence will trigger a new notification
+
+**Error identification:** Errors are identified by a hash of the error message and file path.
+
+---
+
+## 🚀 Usage
+
+### Accessing Error Details
+
+Error detail links are automatically included in:
+- Email notifications
+- Discord webhook messages
+
+**URL format:** `https://yourapp.com/error-mailer/{errorId}`
+
+**Example email:**
+```
+Subject: Error Alert - MyApp
+
+An error has occurred:
+Message: Call to undefined method...
+File: /app/Http/Controllers/UserController.php
+Line: 25
+
+View full details: https://yourapp.com/error-mailer/abc123def456
+```
+
+### Scheduled Cleanup
+
+Error JSON files are stored indefinitely by default. To prevent excessive storage usage, schedule a cleanup task in `app/Console/Kernel.php`:
+
+```php
+protected function schedule(Schedule $schedule)
+{
+    // Delete errors older than 3 months
+    $schedule->call(function () {
+        $storagePath = config('error-mailer.storage_path');
+        $files = File::files($storagePath);
+
+        foreach ($files as $file) {
+            if ($file->getMTime() < now()->subMonths(3)->timestamp) {
+                File::delete($file->getRealPath());
+            }
+        }
+    })->daily();
+}
+```
+
+**Recommended retention periods:**
+- Production: 3-6 months
+- Staging: 1-3 months
+- Development: 1 month
+
+---
+
+## 🔧 Advanced Configuration
+
+### Complete Configuration Reference
+
+```php
+return [
+    // Email notification settings
+    'email' => [
+        'recipient' => ['admin@example.com'],
+        'bcc' => [],
+        'cc' => [],
+        'subject' => 'Error Alert - ' . config('app.name'),
+    ],
+
+    // Environments where notifications are disabled
+    'disabledOn' => [
+        // 'local',
+        // 'testing',
+    ],
+
+    // Cooldown period in minutes
+    'cacheCooldown' => 10,
+
+    // Webhook configuration
+    'webhooks' => [
+        'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
+
+        'message' => [
+            'title' => 'Error Alert - ' . config('app.name'),
+            'description' => 'An error has occurred in the application.',
+            'error' => 'Error',
+            'file' => 'File',
+            'line' => 'Line',
+            'details_link' => 'View Details',
+        ],
+    ],
+
+    // Storage path for error JSON files
+    'storage_path' => storage_path('app/errors'),
+
+    // Error filtering
+    'ignore' => [
+        'levels' => [
+            // 'debug',
+            // 'info',
+        ],
+        'exceptions' => [
+            // \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+        ],
+    ],
+];
+```
+
+---
+
+## 📚 Related Projects
+
+This plugin is also available for **Laravel projects without Filament**:
+
+👉 **[Laravel Error Mailer](https://github.com/hugomayo7/LaravelErrorMailer)**
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/hugomyb/filament-error-mailer.git
+cd filament-error-mailer
+
+# Install dependencies
+composer install
+
+# Run tests
+composer test
+
+# Run tests with coverage
+composer test-coverage
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+vendor/bin/pest
+
+# Run specific test file
+vendor/bin/pest tests/Unit/ErrorDetailsBuilderTest.php
+
+# Run with coverage
+vendor/bin/pest --coverage
+```
+
+---
+
+## 🔒 Security Vulnerabilities
+
+If you discover a security vulnerability, please send an email to [hugomayonobe@gmail.com](mailto:hugomayonobe@gmail.com). All security vulnerabilities will be promptly addressed.
+
+Please review [our security policy](../../security/policy) for more information.
+
+---
+
+## 👥 Credits
+
+- [Hugo Mayonobe](https://github.com/hugomyb) - Creator & Maintainer
 - [All Contributors](../../contributors)
 
-## License
+---
+
+## 📄 License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+
+---
+
+## 💡 Support
+
+If you find this package helpful, please consider:
+- ⭐ Starring the repository
+- 🐛 Reporting bugs or suggesting features via [GitHub Issues](https://github.com/hugomyb/filament-error-mailer/issues)
+- 📖 Improving documentation via pull requests
+
+---
+
+**Made with ❤️ for the Filament community**
