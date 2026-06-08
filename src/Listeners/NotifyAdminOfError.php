@@ -52,8 +52,11 @@ class NotifyAdminOfError
         // Send email notification
         $this->sendEmailNotification($exception, $errorHash);
 
-        // Send webhook notification
+        // Send Discord webhook notification
         $this->sendWebhookNotification($exception, $errorHash);
+
+        // POST raw error details to additional configured endpoints
+        $this->sendEndpointsNotification($errorDetails, $errorHash);
     }
 
     /**
@@ -100,5 +103,31 @@ class NotifyAdminOfError
 
         $payload = $this->discordWebhookBuilder->build($exception, $errorHash);
         WebhookNotifier::send($webhookUrl, $payload);
+    }
+
+    /**
+     * POST the raw error details JSON to every configured generic endpoint.
+     */
+    private function sendEndpointsNotification(array $errorDetails, string $errorHash): void
+    {
+        $endpoints = (array) config('error-mailer.webhooks.endpoints', []);
+
+        if (empty($endpoints)) {
+            return;
+        }
+
+        $payload = $errorDetails + [
+            'details_url' => route('error.details', ['errorId' => $errorHash]),
+            'app_name' => config('app.name'),
+            'app_url' => config('app.url'),
+        ];
+
+        foreach ($endpoints as $url) {
+            if (!is_string($url) || $url === '') {
+                continue;
+            }
+
+            WebhookNotifier::send($url, $payload);
+        }
     }
 }
