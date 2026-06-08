@@ -9,6 +9,7 @@ A powerful Filament plugin that provides instant error notifications via email a
 
 - 📧 **Instant Email Notifications** - Get notified immediately when errors occur
 - 💬 **Discord Webhook Integration** - Send alerts to your Discord channels
+- 🔗 **Custom Webhook Endpoints** - POST raw error JSON to any number of URLs (n8n, Zapier, Slack apps, custom APIs)
 - 🎯 **Smart Application File Detection** - Automatically identifies errors in your code (excluding vendor files)
 - 🌓 **Beautiful Error Details Page** - Dark/Light mode with copy & share functionality
 - ⏱️ **Cooldown System** - Prevents notification spam for duplicate errors
@@ -22,6 +23,7 @@ A powerful Filament plugin that provides instant error notifications via email a
 - [Configuration](#configuration)
   - [Email Configuration](#email-configuration)
   - [Discord Webhook](#discord-webhook)
+  - [Custom Webhook Endpoints](#custom-webhook-endpoints)
   - [Error Filtering](#error-filtering)
   - [Cooldown Period](#cooldown-period)
   - [Storage Path](#storage-path)
@@ -71,6 +73,10 @@ return [
 
     'webhooks' => [
         'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
+
+        // Additional generic webhook URLs the plugin will POST the raw
+        // error details JSON to. Can also be set via env (CSV).
+        'endpoints' => array_values(array_filter(array_map('trim', explode(',', (string) env('ERROR_MAILER_WEBHOOK_URLS', ''))))),
 
         'message' => [
             'title' => 'Error Alert - ' . config('app.name'),
@@ -191,6 +197,60 @@ ERROR_MAILER_DISCORD_WEBHOOK="https://discord.com/api/webhooks/your-webhook-id/y
     ],
 ],
 ```
+
+### Custom Webhook Endpoints
+
+In addition to the Discord webhook, the plugin can POST the raw error details (as JSON) to any number of custom URLs. This is useful for forwarding errors to **n8n**, **Zapier**, **Slack apps**, a monitoring service, or your own internal API.
+
+**1. Via `.env` (comma-separated list):**
+
+```env
+ERROR_MAILER_WEBHOOK_URLS="https://hooks.example.com/error,https://n8n.example.com/webhook/abc123"
+```
+
+**2. Or directly in `config/error-mailer.php`:**
+
+```php
+'webhooks' => [
+    'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
+
+    'endpoints' => [
+        'https://hooks.example.com/error',
+        'https://n8n.example.com/webhook/abc123',
+        env('CUSTOM_MONITORING_WEBHOOK'),
+    ],
+
+    // ...
+],
+```
+
+Each URL receives a `POST` request with a JSON body containing the full error details:
+
+```json
+{
+    "id": "a1b2c3d4e5f6...",
+    "message": "Undefined variable $foo",
+    "file": "/app/Http/Controllers/UserController.php",
+    "line": 42,
+    "appFile": "/app/Http/Controllers/UserController.php",
+    "appLine": 42,
+    "url": "https://yourapp.com/users",
+    "method": "GET",
+    "ip": "1.2.3.4",
+    "userAgent": "Mozilla/5.0 ...",
+    "referrer": "https://yourapp.com/",
+    "requestTime": "2026-06-08 14:23:55",
+    "requestUri": "/users",
+    "authUser": { "id": 1, "name": "Jane", "email": "jane@example.com" },
+    "stackTrace": "...",
+    "last_notified_at": "2026-06-08 14:23:55",
+    "details_url": "https://yourapp.com/admin/error/a1b2c3d4...",
+    "app_name": "MyApp",
+    "app_url": "https://yourapp.com"
+}
+```
+
+Endpoints share the same cooldown as the email/Discord notifications — duplicate errors within `cacheCooldown` minutes are not re-sent.
 
 ### Error Filtering
 
@@ -392,6 +452,9 @@ return [
     // Webhook configuration
     'webhooks' => [
         'discord' => env('ERROR_MAILER_DISCORD_WEBHOOK'),
+
+        // Additional URLs to POST the raw error JSON to.
+        'endpoints' => array_values(array_filter(array_map('trim', explode(',', (string) env('ERROR_MAILER_WEBHOOK_URLS', ''))))),
 
         'message' => [
             'title' => 'Error Alert - ' . config('app.name'),
