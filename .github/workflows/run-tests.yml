@@ -24,7 +24,7 @@ jobs:
           - laravel: 11.*
             testbench: 9.*
           - laravel: 10.*
-            testbench: 8.*
+            testbench: ^8.22
         exclude:
           - laravel: 13.*
             php: 8.2
@@ -55,11 +55,12 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
-      # Pest 2.35/2.36 (the last releases supporting PHP 8.1) hard-pin PHPUnit
-      # patches that carry a security advisory; Composer >= 2.9 refuses to load
-      # advisory-affected versions by default, making this lane unresolvable.
-      - name: Allow advisory-affected dev dependencies on the PHP 8.1 lane
-        if: matrix.php == 8.1
+      # Composer >= 2.9 refuses to install versions flagged by security
+      # advisories. EOL Laravel series (10.x, 11.x) are entirely flagged, as
+      # are the PHPUnit patches pinned by the last PHP 8.1-compatible Pest
+      # releases. This CI intentionally tests those legacy combinations;
+      # advisory handling remains the consuming application's responsibility.
+      - name: Allow installing advisory-affected versions
         run: composer config policy.advisories.block false
 
       - name: Install dependencies
