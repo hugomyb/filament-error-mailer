@@ -50,7 +50,7 @@ class NotifyAdminOfError
         $this->errorStorage->store($errorHash, $errorDetails);
 
         // Send email notification
-        $this->sendEmailNotification($exception, $errorHash);
+        $this->sendEmailNotification($exception, $errorHash, $errorDetails);
 
         // Send Discord webhook notification
         $this->sendWebhookNotification($exception, $errorHash);
@@ -62,7 +62,7 @@ class NotifyAdminOfError
     /**
      * Send email notification to configured recipients.
      */
-    private function sendEmailNotification(\Throwable $exception, string $errorHash): void
+    private function sendEmailNotification(\Throwable $exception, string $errorHash, array $errorDetails): void
     {
         $recipients = config('error-mailer.email.recipient', []);
         $bccRecipients = config('error-mailer.email.bcc', []);
@@ -84,7 +84,7 @@ class NotifyAdminOfError
                 $mail->cc($ccRecipients);
             }
 
-            $mail->send(new ErrorOccurred($exception, $errorHash));
+            $mail->send(new ErrorOccurred($exception, $errorHash, $errorDetails));
         } catch (\Exception $e) {
             Log::error('Failed to send error notification email: ' . $e->getMessage());
         }

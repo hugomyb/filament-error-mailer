@@ -26,12 +26,30 @@ class ErrorDetailsBuilder
             'ip' => request()->ip(),
             'userAgent' => request()->userAgent(),
             'referrer' => request()->header('referer') ?? 'N/A',
-            'requestTime' => Carbon::createFromTimestamp(request()->server('REQUEST_TIME'))->toDateTimeString(),
+            'requestTime' => $this->requestTime(),
             'requestUri' => request()->server('REQUEST_URI') ?? 'N/A',
             'authUser' => $this->getAuthenticatedUser(),
             'stackTrace' => $exception->getTraceAsString(),
             'last_notified_at' => now()->toDateTimeString(),
         ];
+    }
+
+    /**
+     * Request start time, expressed in the application timezone.
+     *
+     * The timezone is passed explicitly because Carbon 3 makes
+     * createFromTimestamp() default to UTC instead of the default timezone,
+     * which silently shifted the reported time on non-UTC applications.
+     */
+    public function requestTime(): string
+    {
+        $timestamp = request()->server('REQUEST_TIME');
+
+        if (!is_numeric($timestamp)) {
+            return now()->toDateTimeString();
+        }
+
+        return Carbon::createFromTimestamp((int) $timestamp, config('app.timezone'))->toDateTimeString();
     }
 
     /**

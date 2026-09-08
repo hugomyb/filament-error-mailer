@@ -36,6 +36,27 @@ it('sends email notification on error', function () {
     });
 });
 
+it('renders the same request time in the email and in the stored details', function () {
+    config()->set('app.timezone', 'Europe/Paris');
+    request()->server->set('REQUEST_TIME', 1757328694);
+
+    $exception = new \Exception('Test error');
+    $event = new MessageLogged('error', 'Test error', ['exception' => $exception]);
+
+    app(NotifyAdminOfError::class)->handle($event);
+
+    $stored = json_decode(File::get(File::files($this->storagePath)[0]->getPathname()), true);
+    expect($stored['requestTime'])->toBe('2025-09-08 12:51:34');
+
+    Mail::assertSent(ErrorOccurred::class, function (ErrorOccurred $mail) use ($stored) {
+        // The request context is gone by the time a queued mail is rendered,
+        // so the body must come from the captured snapshot.
+        request()->server->remove('REQUEST_TIME');
+
+        return str_contains($mail->render(), $stored['requestTime']);
+    });
+});
+
 it('stores error details to file', function () {
     $exception = new \Exception('Test error');
     $event = new MessageLogged('error', 'Test error', ['exception' => $exception]);
