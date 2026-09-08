@@ -1,6 +1,12 @@
+@php
+    // Rendered from the snapshot captured when the error occurred, never from
+    // the live request: the mail may be queued and sent from another process.
+    $errorDetails = $errorDetails ?? [];
+    $authUser = $errorDetails['authUser'] ?? null;
+@endphp
 <x-mail::message>
 ## Environment :
-# {{ env('APP_URL') ?? "" }}
+# {{ config('app.url') ?? "" }}
 
 ## Error :
 # {{ $exception ? $exception->getMessage() : "" }}
@@ -12,26 +18,26 @@
 # {{ $exception ? $exception->getLine() : "" }}
 
 ## URL :
-# {{ url(request()->getPathInfo()) ?? "" }}
+# {{ $errorDetails['url'] ?? "" }}
 
 @component('mail::table')
 | Request : | |
 | --- | --- |
-| **Method** | {{ request()->method() }} |
-| **IP** | {{ request()->ip() }} |
-| **User Agent** | {{ request()->userAgent() }} |
-| **Referrer** | {{ request()->header('referer') }} |
-| **Request Time** | {{ \Carbon\Carbon::createFromTimestamp(request()->server('REQUEST_TIME'))->toDateTimeString() }} |
-| **Request URI** | {{ request()->server('REQUEST_URI') }} |
+| **Method** | {{ $errorDetails['method'] ?? "" }} |
+| **IP** | {{ $errorDetails['ip'] ?? "" }} |
+| **User Agent** | {{ $errorDetails['userAgent'] ?? "" }} |
+| **Referrer** | {{ $errorDetails['referrer'] ?? "" }} |
+| **Request Time** | {{ $errorDetails['requestTime'] ?? "" }} |
+| **Request URI** | {{ $errorDetails['requestUri'] ?? "" }} |
 @endcomponent
 
-@if(auth()->check())
+@if($authUser)
 @component('mail::table')
 | Auth User : | |
 | --- | --- |
-| **ID** | {{ auth()->id() }} |
-| **Name** | {{ auth()->user()->name ?? "" }} |
-| **Email** | {{ auth()->user()->email ?? "" }} |
+| **ID** | {{ $authUser['id'] ?? "" }} |
+| **Name** | {{ $authUser['name'] ?? "" }} |
+| **Email** | {{ $authUser['email'] ?? "" }} |
 @endcomponent
 @else
 @component('mail::table')

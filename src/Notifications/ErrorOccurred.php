@@ -2,6 +2,7 @@
 
 namespace Hugomyb\FilamentErrorMailer\Notifications;
 
+use Hugomyb\FilamentErrorMailer\Services\ErrorDetailsBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -14,10 +15,18 @@ class ErrorOccurred extends Mailable
     public \Throwable $exception;
     public string $errorHash;
 
-    public function __construct(\Throwable $exception, string $errorHash)
+    /**
+     * Details captured when the error occurred. The email is rendered from this
+     * snapshot so it always matches the details page, even when the mail is
+     * queued and the original request is long gone by rendering time.
+     */
+    public array $errorDetails;
+
+    public function __construct(\Throwable $exception, string $errorHash, ?array $errorDetails = null)
     {
         $this->exception = $exception;
         $this->errorHash = $errorHash;
+        $this->errorDetails = $errorDetails ?? app(ErrorDetailsBuilder::class)->build($exception, $errorHash);
     }
 
     public function build()
@@ -30,6 +39,7 @@ class ErrorOccurred extends Mailable
                 'exception' => $this->exception,
                 'stackTrace' => $stackTrace,
                 'errorHash' => $this->errorHash,
+                'errorDetails' => $this->errorDetails,
             ]);
     }
 

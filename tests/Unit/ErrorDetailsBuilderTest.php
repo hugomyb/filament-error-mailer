@@ -52,6 +52,28 @@ it('builds complete error details', function () {
     expect($details['message'])->toBe('Test error message');
 });
 
+it('formats request time in the application timezone', function () {
+    config()->set('app.timezone', 'Europe/Paris');
+    request()->server->set('REQUEST_TIME', 1757328694);
+
+    $exception = new \Exception('Test error');
+    $errorHash = $this->builder->generateHash($exception);
+    $details = $this->builder->build($exception, $errorHash);
+
+    // 1757328694 is 10:51:34 UTC, i.e. 12:51:34 in Europe/Paris
+    expect($details['requestTime'])->toBe('2025-09-08 12:51:34');
+});
+
+it('falls back to the current time when REQUEST_TIME is unavailable', function () {
+    config()->set('app.timezone', 'Europe/Paris');
+    request()->server->remove('REQUEST_TIME');
+
+    $exception = new \Exception('Test error');
+    $details = $this->builder->build($exception, $this->builder->generateHash($exception));
+
+    expect($details['requestTime'])->toBe(now()->toDateTimeString());
+});
+
 it('sets null for auth user when not logged in', function () {
     $exception = new \Exception('Test error');
     $errorHash = $this->builder->generateHash($exception);
